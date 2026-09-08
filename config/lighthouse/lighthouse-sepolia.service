@@ -1,0 +1,29 @@
+[Unit]
+Description=Lighthouse Beacon Node (Ethereum Sepolia Testnet)
+After=network.target network-online.target geth-sepolia.service
+Wants=network-online.target
+
+[Service]
+User=ethereum
+Group=ethereum
+Type=simple
+Restart=always
+RestartSec=5
+ExecStart=/usr/local/bin/lighthouse bn \
+  --network sepolia \
+  --datadir /var/lib/ethereum/lighthouse-sepolia \
+  --execution-endpoint http://127.0.0.1:8551 \
+  --execution-jwt /var/lib/ethereum/jwt.hex \
+  --checkpoint-sync-url https://checkpoint-sync.sepolia.ethpandaops.io \
+  --http \
+  --http-address 0.0.0.0 \
+  --http-port 5052 \
+  --http-allow-origin "*" \
+  --port 9000
+
+KillMode=process
+TimeoutStopSec=60
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

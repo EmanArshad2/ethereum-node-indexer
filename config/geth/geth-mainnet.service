@@ -1,0 +1,39 @@
+[Unit]
+Description=Geth Execution Client (Ethereum Mainnet)
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+User=ethereum
+Group=ethereum
+Type=simple
+Restart=always
+RestartSec=5
+ExecStart=/usr/local/bin/geth \
+  --mainnet \
+  --datadir /var/lib/ethereum/geth-mainnet \
+  --syncmode snap \
+  --cache 8192 \
+  --maxpeers 50 \
+  --authrpc.jwtsecret /var/lib/ethereum/jwt.hex \
+  --authrpc.addr 127.0.0.1 \
+  --authrpc.port 8551 \
+  --authrpc.vhosts localhost \
+  --http \
+  --http.addr 0.0.0.0 \
+  --http.port 8545 \
+  --http.api eth,net,web3,engine,txpool,debug \
+  --http.corsdomain "*" \
+  --ws \
+  --ws.addr 0.0.0.0 \
+  --ws.port 8546 \
+  --ws.api eth,net,web3 \
+  --ws.origins "*" \
+  --port 30303
+
+KillMode=process
+TimeoutStopSec=60
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
