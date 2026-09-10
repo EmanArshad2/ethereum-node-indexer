@@ -1,11 +1,19 @@
 # ==============================================================================
 # Ethereum Node & Explorer 1-Click Windows Launcher
 # ==============================================================================
-# Double-click or run: .\start-node.ps1
+# Usage:
+#   .\start-node.ps1                    (Defaults to Sepolia Testnet)
+#   .\start-node.ps1 -Network mainnet   (Launches Real Ethereum Mainnet!)
+#   .\start-node.ps1 -Network sepolia   (Launches Sepolia Testnet)
 # ==============================================================================
 
+param(
+    [ValidateSet("sepolia", "mainnet")]
+    [string]$Network = "sepolia"
+)
+
 Write-Host "=================================================================" -ForegroundColor Cyan
-Write-Host "       Launching Ethereum Node & Blockscout Explorer UI...      " -ForegroundColor Cyan
+Write-Host "  Launching Ethereum Node & Explorer UI [$Network.ToUpper()]   " -ForegroundColor Cyan
 Write-Host "=================================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -13,6 +21,19 @@ $BASE_DIR = "$env:USERPROFILE\Desktop\ethereum"
 $DATA_DIR = "$BASE_DIR\data"
 $JWT_PATH = "$BASE_DIR\jwt.hex"
 $PROJECT_DIR = $PSScriptRoot
+
+# Network configuration details
+if ($Network -eq "mainnet") {
+    $gethNetFlag = "--mainnet"
+    $lhNetFlag = "mainnet"
+    $lhCheckpoint = "https://mainnet-checkpoint-sync.attestant.io"
+    $envSource = ".env.mainnet"
+} else {
+    $gethNetFlag = "--sepolia"
+    $lhNetFlag = "sepolia"
+    $lhCheckpoint = "https://checkpoint-sync.sepolia.ethpandaops.io"
+    $envSource = ".env.sepolia"
+}
 
 # 1. Create data directory if missing
 if (-not (Test-Path $DATA_DIR)) {
@@ -32,10 +53,10 @@ if (-not (Test-Path $JWT_PATH)) {
 # 3. Check if Geth is already running, if not start it
 $gethListening = Test-NetConnection -ComputerName "127.0.0.1" -Port 8545 -InformationLevel Quiet
 if (-not $gethListening) {
-    Write-Host "[3/5] Starting Geth Execution Client in background..." -ForegroundColor Yellow
+    Write-Host "[3/5] Starting Geth Execution Client ($Network)..." -ForegroundColor Yellow
     $gethExe = "C:\Program Files\Geth\geth.exe"
     if (Test-Path $gethExe) {
-        Start-Process -FilePath $gethExe -ArgumentList "--sepolia --datadir `"$DATA_DIR\geth`" --http --http.addr `"0.0.0.0`" --http.port 8545 --http.api `"eth,net,web3,engine,txpool,debug`" --http.corsdomain `"*`" --ws --ws.addr `"0.0.0.0`" --ws.port 8546 --ws.api `"eth,net,web3`" --authrpc.addr `"127.0.0.1`" --authrpc.port 8551 --authrpc.jwtsecret `"$JWT_PATH`" --authrpc.vhosts `"*`" --cache 8192 --maxpeers 50" -WindowStyle Hidden
+        Start-Process -FilePath $gethExe -ArgumentList "$gethNetFlag --datadir `"$DATA_DIR\geth`" --http --http.addr `"0.0.0.0`" --http.port 8545 --http.api `"eth,net,web3,engine,txpool,debug`" --http.corsdomain `"*`" --ws --ws.addr `"0.0.0.0`" --ws.port 8546 --ws.api `"eth,net,web3`" --authrpc.addr `"127.0.0.1`" --authrpc.port 8551 --authrpc.jwtsecret `"$JWT_PATH`" --authrpc.vhosts `"*`" --cache 8192 --maxpeers 50" -WindowStyle Hidden
     } else {
         Write-Host "  [-] Geth executable not found at $gethExe. Please install Geth." -ForegroundColor Red
     }
@@ -46,7 +67,7 @@ if (-not $gethListening) {
 # 4. Start Lighthouse Docker container if not running
 $lhRunning = docker ps --format '{{.Names}}' | Select-String "lighthouse"
 if (-not $lhRunning) {
-    Write-Host "[4/5] Starting Lighthouse Consensus Client in Docker..." -ForegroundColor Yellow
+    Write-Host "[4/5] Starting Lighthouse Consensus Client ($Network) in Docker..." -ForegroundColor Yellow
     docker run -d `
       --name lighthouse `
       --restart unless-stopped `
@@ -57,10 +78,10 @@ if (-not $lhRunning) {
       -v "${JWT_PATH}:/root/jwt.hex" `
       sigp/lighthouse:latest `
       lighthouse bn `
-      --network sepolia `
+      --network $lhNetFlag `
       --execution-endpoint http://host.docker.internal:8551 `
       --execution-jwt /root/jwt.hex `
-      --checkpoint-sync-url https://checkpoint-sync.sepolia.ethpandaops.io `
+      --checkpoint-sync-url $lhCheckpoint `
       --http `
       --http-address 0.0.0.0 `
       --http-port 5052 | Out-Null
@@ -74,17 +95,15 @@ $blockscoutDir = Join-Path $PROJECT_DIR "blockscout"
 if (Test-Path $blockscoutDir) {
     Set-Location $blockscoutDir
     
-    # Ensure .env is set
-    if (-not (Test-Path ".env")) {
-        Copy-Item ".env.sepolia" ".env"
-    }
+    # Copy env source for target network
+    Copy-Item $envSource ".env" -Force
 
     docker compose up -d
 }
 
 Write-Host ""
 Write-Host "=================================================================" -ForegroundColor Green
-Write-Host "  SUCCESS! All Ethereum Node & Explorer Services are Running!    " -ForegroundColor Green
+Write-Host "  SUCCESS! Ethereum Node & Explorer Services are Active! [$Network] " -ForegroundColor Green
 Write-Host "=================================================================" -ForegroundColor Green
 Write-Host "  Opening Explorer UI: http://localhost:3000" -ForegroundColor Cyan
 Write-Host ""
