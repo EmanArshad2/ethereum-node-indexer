@@ -53,8 +53,8 @@ if (-not $lhRunning) {
       -p 5052:5052 `
       -p 9000:9000/tcp `
       -p 9000:9000/udp `
-      -v "$DATA_DIR\lighthouse:/root/.lighthouse" `
-      -v "$JWT_PATH:/root/jwt.hex" `
+      -v "${DATA_DIR}\lighthouse:/root/.lighthouse" `
+      -v "${JWT_PATH}:/root/jwt.hex" `
       sigp/lighthouse:latest `
       lighthouse bn `
       --network sepolia `
