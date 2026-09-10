@@ -54,6 +54,7 @@ services:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_APP_HOST=localhost
+      - NEXT_PUBLIC_AD_BANNER_PROVIDER=none
       - NEXT_PUBLIC_NETWORK_NAME=${CHAIN_NAME:-Ethereum}
       - NEXT_PUBLIC_NETWORK_SHORT_NAME=${CHAIN_NAME:-Ethereum}
       - NEXT_PUBLIC_NETWORK_ID=${CHAIN_ID:-1}
